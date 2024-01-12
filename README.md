@@ -13,6 +13,7 @@ nano ~/.bashrc
 ```
    
 This command will open the .bashrc file with the nano text editor. You can also use another editor if you prefer, such as vim or gedit.
+
 2. Add the following line to the end of the .bashrc file :
 
  ```bash
