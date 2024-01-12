@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+
+import os
+
+def generate_makefile(project_name, source_files, binary_name, flags):
+    if source_files:
+        src_lines = f"{source_files[0]} \\"
+        src_lines += '\n\t\t' + ' \\\n\t\t'.join(source_files[1:])
+
+    makefile_content = f"""##
+## EPITECH PROJECT, 2023
+## {project_name}
+## File description:
+## Makefile for the project {project_name}
+##
+
+SRCS\t=\t{src_lines}
+
+OBJS\t=\t$(SRCS:.c=.o)
+
+NAME\t=\t{binary_name}
+
+RM\t=\trm -f
+
+CC\t=\tgcc
+
+CFLAGS\t=\t-Wall{' '.join(flags)}
+
+all: $(NAME)
+
+$(NAME): $(OBJS)
+\t$(CC) $(CFLAGS) -o $(NAME) $(OBJS)
+
+clean:
+\t$(RM) $(OBJS)
+\t$(RM) *~
+
+fclean: clean
+\t$(RM) $(NAME)
+
+re: fclean all
+
+.PHONY: all clean fclean re
+"""
+    with open("Makefile", "w") as makefile:
+        makefile.write(makefile_content)
+
+if __name__ == "__main__":
+    project_name = input("Enter the project name : ")
+    source_files = input("Enter the list of source files (separated by spaces) : ").split()
+    binary_name = input("Binary name : ")
+    flags = input("Add your compilation flags separated by spaces (-Wall already on the Makefile) : ").split()
+
+    generate_makefile(project_name, source_files, binary_name, flags)
+    print("Makefile successfully generated.")
