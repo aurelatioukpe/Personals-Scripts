@@ -12,7 +12,7 @@ If you want to include `genmake` in your system commands and run it from anywher
 nano ~/.bashrc
 ```
    
-This command will open the .bashrc file with the nano text editor. You can also use another editor if you prefer, such as vim or gedit.
+This command will open the `.bashrc` file with the nano text editor. You can also use another editor if you prefer, such as vim or gedit.
 
 2. Add the following line to the end of the .bashrc file :
 
@@ -20,7 +20,7 @@ This command will open the .bashrc file with the nano text editor. You can also 
 export PATH=$PATH:/path/to/directory/of/genmake
  ```
 
-Replace /path/to/directory/of/genmake with the absolute path to the directory containing the genmake script.
+Replace `/path/to/directory/of/genmake` with the absolute path to the directory containing the genmake script.
 
 3. Save your changes and close the text editor.
 
@@ -30,6 +30,5 @@ Replace /path/to/directory/of/genmake with the absolute path to the directory co
 source ~/.bashrc
 ```
 
-This will load the changes made to your .bashrc file.
-Now you should be able to run the genmake script from anywhere in your terminal simply by using its name (genmake). 
-Also, make sure that the Python interpreter specified in the first line of the script `(#!/usr/bin/env python)` is correct for your environment. If you're using Python 3, you can replace python with python3 in this line ;)
+This will load the changes made to your `.bashrc` file.
+Now you should be able to run the genmake script from anywhere in your terminal simply by using its name `genmake` ;)
