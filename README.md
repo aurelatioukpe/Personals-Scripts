@@ -31,4 +31,8 @@ source ~/.bashrc
 ```
 
 This will load the changes made to your `.bashrc` file.
-Now you should be able to run the genmake script from anywhere in your terminal simply by using its name `genmake` ;)
+Now you should be able to run the genmake script from anywhere in your terminal simply by using its name `genmake`
+
+-Banned-Function-Checker
+
+Do the same as you do for genmake

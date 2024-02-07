@@ -6,6 +6,7 @@ from colorama import Fore, Style
 
 def search_banned_functions(directory):
     banned_functions = ["printf", "exit", "strlen", "strcmp", "strcpy", "strcat", "strncat", "strncpy"]
+    exceptions = input("Enter usually banned functions which are allowed for this project: ").split()
 
     for parent_folder, subfolders, files in os.walk(directory):
         for file in files:
