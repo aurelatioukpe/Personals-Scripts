@@ -5,7 +5,7 @@ import re
 from colorama import Fore, Style
 
 def search_banned_functions(directory):
-    banned_functions = input("Enter the names of banned functions (separated by spaces): ").split()
+    banned_functions = ["printf", "exit", "strlen", "strcmp", "strcpy", "strcat", "strncat", "strncpy"]
 
     for parent_folder, subfolders, files in os.walk(directory):
         for file in files:
