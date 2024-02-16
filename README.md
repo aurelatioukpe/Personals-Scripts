@@ -1,38 +1,39 @@
-### Explanations to use this repository scripts
+# Using Scripts in this Repository
 
-- Makefile Generator 
+This repository contains Bash and Python scripts designed to automate certain boring tasks. Here's how to use them:
 
-## Using genmake in System Commands
+## Granting Permissions to the Scripts
 
-If you want to include `genmake` in your system commands and run it from anywhere in your terminal, follow these steps:
-
-1. Open the Bash profile file using a text editor. For example, you can use the following command :
+Before running the scripts, ensure they have the appropriate permissions to be executed. You can use the chmod command for this:
 
 ```bash
-nano ~/.bashrc
+chmod +x script.sh script.py
 ```
-   
-This command will open the `.bashrc` file with the nano text editor. You can also use another editor if you prefer, such as vim or gedit.
 
-2. Add the following line to the end of the .bashrc file :
+This grants execution rights to the script.sh and script.py files.
 
- ```bash
-export PATH=$PATH:/path/to/directory/of/genmake
- ```
+## Installing Dependencies (if necessary)
 
-Replace `/path/to/directory/of/genmake` with the absolute path to the directory containing the genmake script.
+Some scripts may have external dependencies. Make sure to install them using the appropriate package managers. For example, if your script uses Python packages, you can install them with pip:
 
-3. Save your changes and close the text editor.
+```bash
+pip install -r requirements.txt
+```
 
-4. Reload your profile file to apply the changes without having to restart your session. You can use the following command :
+Make sure you have Python and pip installed on your system.
+
+## Configuring the Path in the bashrc file (optional)
+
+If you want to run these scripts from anywhere in your system without specifying the full path, you can add the directory containing the scripts to your PATH environment variable. To do this, edit your .bashrc or .bash_profile file:
+
+```bash
+export PATH=$PATH:/path/to/your/repo/scripts
+```
+
+Make sure to replace /path/to/your/repo/scripts with the absolute path to the directory containing your scripts.
+
+Finally, remember to refresh your .bashrc file for changes to take effect. You can do this by sourcing the file:
 
 ```bash
 source ~/.bashrc
 ```
-
-This will load the changes made to your `.bashrc` file.
-Now you should be able to run the genmake script from anywhere in your terminal simply by using its name `genmake`
-
--Banned-Function-Checker
-
-Do the same as you do for genmake
