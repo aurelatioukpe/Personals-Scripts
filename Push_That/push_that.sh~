@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <message_commit>"
+    exit 1
+fi
+
+git add .
+
+git status
+
+read -p "Voulez-vous continuer avec ces changements ? (y/n) " confirm
+if [ "$confirm" != "y" ]; then
+    echo "Annulation de l'opération."
+    exit 1
+fi
+
+git commit -m "$1"
+
+git push origin main
+
+echo "Push effectué avec succès."
