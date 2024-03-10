@@ -23,7 +23,7 @@ def search_banned_functions(directory):
                 content = file.read()
                 banned_function_found = False
                 for banned_function in banned_functions:
-                    if banned_function in exceptions:  # Vérifie si la fonction est dans les exceptions
+                    if banned_function in exceptions:
                         continue
                     pattern = re.compile(r'\b' + re.escape(banned_function) + r'\b')
                     if pattern.search(content):
