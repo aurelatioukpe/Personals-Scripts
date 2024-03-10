@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+mkdir -p include src
+
+touch src/main.c include/my.h
+
+code include/my.h &
+
+sleep 2
+
+xdotool key --clearmodifiers Ctrl+Shift+h
+sleep 0.5
+xdotool key --clearmodifiers Return
+sleep 0.5
+xdotool key --clearmodifiers Return
+sleep 0.5
+xdotool key --clearmodifiers Return
+
+code src/main.c &
+
+sleep 2
+
+xdotool key --clearmodifiers Ctrl+Shift+h
+sleep 0.5
+xdotool key --clearmodifiers Return
+sleep 0.5
+xdotool key --clearmodifiers Return
+
+echo "Repository initialized!"
+
+read -p "Do you want to generate your Makefile right now? (y/n): " answer
+
+if [ "$answer" == "y" ]; then
+    genmake
+fi
