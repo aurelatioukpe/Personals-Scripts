@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3                                                                                                                                                                                                                        
 
 import os
 import re
@@ -10,10 +10,10 @@ def search_banned_functions(directory):
 
     for parent_folder, subfolders, files in os.walk(directory):
         for file in files:
-            
+
             if not file.endswith(".c"):
                 continue
-            
+
             file_path = os.path.join(parent_folder, file)
 
             if not os.path.exists(file_path) or os.path.islink(file_path):
@@ -23,12 +23,14 @@ def search_banned_functions(directory):
                 content = file.read()
                 banned_function_found = False
                 for banned_function in banned_functions:
+                    if banned_function in exceptions:  # Vérifie si la fonction est dans les exceptions
+                        continue
                     pattern = re.compile(r'\b' + re.escape(banned_function) + r'\b')
                     if pattern.search(content):
                         print(Fore.RED + f"File: {file_path}\nBanned function found: {banned_function}\n" + Style.RESET_ALL)
                         banned_function_found = True
                         break
-                
+
                 if not banned_function_found:
                     print(Fore.GREEN + f"File: {file_path}\nNo banned functions found.\n" + Style.RESET_ALL)
 
