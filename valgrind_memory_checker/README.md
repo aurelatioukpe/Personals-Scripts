@@ -3,6 +3,9 @@ Just follow the instructions for the installation of Makefile Generator to set u
 You must have the lastest version of valgrind before using this script.
 
 **Usage:**
- 
+ ```bash
+./memory_check.sh
+```
+
 You can have it by visiting this website :
 https://valgrind.org/docs/manual/dist.readme.html
