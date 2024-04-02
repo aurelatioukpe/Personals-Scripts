@@ -6,7 +6,7 @@ touch src/main.c include/my.h
 
 code include/my.h &
 
-sleep 2
+sleep 5
 
 xdotool key --clearmodifiers Ctrl+Shift+h
 sleep 0.5
