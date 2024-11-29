@@ -27,6 +27,16 @@ This Bash script simplifies the process of mounting a Windows partition (NTFS fo
 
 ---
 
+## DISCLAIMER
+This script is provided "as is" without any guarantees or warranties of any kind. Use it at your own risk.
+
+- **Data Loss Risk:** Incorrect usage of the script or modifications to system files (e.g., /etc/fstab) may result in data loss or make your system unbootable. Always back up your important data before proceeding.
+- **User Responsibility:** It is the user’s responsibility to ensure they understand the operations performed by the script and the potential consequences.
+- **No Liability:** The author assumes no liability for any damage, data loss, or issues arising from the use of this script.
+- **Compatibility:** This script is designed for Linux distributions that support the ntfs-3g package. Compatibility with all distributions is not guaranteed.
+
+By using this script, you acknowledge and agree to these terms. If you are unsure of what this script does, refrain from using it and seek advice from a knowledgeable source.
+
 ## Usage Instructions
 
 ### 1. Run the Script
