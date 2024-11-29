@@ -1,96 +1,96 @@
 
-# Script de Montage Windows sous Linux
+# Windows Partition Mount Script for Linux
 
 ## Description
 
-Ce script Bash permet de monter facilement une partition Windows (format NTFS) sous Linux, même en cas de problèmes tels que l'hibernation ou un système de fichiers non propre. Il guide l'utilisateur à travers les étapes nécessaires pour monter la partition et configure le montage automatique au démarrage si désiré.
+This Bash script simplifies the process of mounting a Windows partition (NTFS format) on Linux, even in cases of issues like hibernation or an unclean file system. It guides the user through the necessary steps to mount the partition and configures automatic mounting on startup if desired.
 
 ---
 
-## Fonctionnalités
+## Features
 
-1. Détection automatique des partitions NTFS.
-2. Vérification de l'état du système de fichiers avec `ntfsfix`.
-3. Gestion des erreurs liées à l'hibernation ou au démarrage rapide de Windows.
-4. Création automatique du point de montage si nécessaire.
-5. Montage en lecture/écriture (ou en lecture seule en cas de problème).
-6. Configuration du montage automatique via `/etc/fstab`.
+1. Automatic detection of NTFS partitions.
+2. File system status check using `ntfsfix`.
+3. Error handling for Windows hibernation or fast startup.
+4. Automatic creation of the mount point if needed.
+5. Read/Write mounting (or Read-Only if issues persist).
+6. Automatic mount configuration via `/etc/fstab`.
 
 ---
 
-## Prérequis
+## Prerequisites
 
-- **Paquet `ntfs-3g` installé** : Utilisé pour monter les partitions NTFS en lecture/écriture.
+- **`ntfs-3g` package installed**: Used to mount NTFS partitions in read/write mode.
   ```bash
   sudo apt update && sudo apt install ntfs-3g
   ```
 
 ---
 
-## Instructions d'utilisation
+## Usage Instructions
 
-### 1. Lancer le script
-Téléchargez le script et donnez lui les permissions avec :
+### 1. Run the Script
+Download the script and grant it executable permissions with:
 ```bash
 chmod +x mount_windows.sh
 ```
-Puis exécutez le script avec :
+Then, run the script with:
 ```bash
 ./mount_windows.sh
 ```
 
-### 2. Étapes guidées par le script
-- **Sélectionnez la partition** : Le script liste toutes les partitions NTFS détectées.
-- **Indiquez un point de montage** : Si le répertoire n'existe pas, il sera créé.
-- **Résolution des erreurs** :
-  - Si Windows est en hibernation, désactivez-la avec la commande suivante sous Windows :
+### 2. Follow the Guided Steps
+- **Select the Partition**: The script lists all detected NTFS partitions.
+- **Specify a Mount Point**: If the directory does not exist, it will be created.
+- **Resolve Errors**:
+  - If Windows is hibernated, disable it using the following command in Windows:
     ```cmd
     powercfg /h off
     ```
-  - Assurez-vous que le disque est correctement éteint via Windows (pas en mode "démarrage rapide").
+  - Ensure the disk is properly shut down in Windows (not in "fast startup" mode).
 
-### 3. Montage automatique (optionnel)
-Le script peut ajouter la partition au fichier `/etc/fstab` pour un montage automatique au démarrage :
-- Le fichier est modifié uniquement si l'utilisateur accepte.
-- L'UUID de la partition est utilisé pour un montage fiable.
+### 3. Optional Automatic Mounting
+The script can add the partition to the `/etc/fstab` file for automatic mounting on startup:
+- The file is modified only if the user agrees.
+- The UUID of the partition is used for reliable mounting.
 
 ---
 
-## Exemple de sortie
+## Example Output
 
 ```
 ===============================
-   Script de montage Windows   
+   Windows Partition Mount Script   
 ===============================
-Recherche des partitions Windows (NTFS)...
-Partitions détectées :
+Searching for Windows (NTFS) partitions...
+Detected partitions:
 sda1 ntfs 100G /mnt/windows
 
-Entrez le nom du périphérique (ex: sda1, nvme0n1p3) : sda1
-Entrez le chemin du point de montage (par exemple, /mnt/windows) : /mnt/windows
-Vérification de l'état du système de fichiers...
-Partition montée avec succès en lecture/écriture à /mnt/windows.
-Voulez-vous que cette partition soit montée automatiquement au démarrage ? (oui/non) : oui
-Entrée ajoutée avec succès à /etc/fstab.
+Enter the device name (e.g., sda1, nvme0n1p3): sda1
+Enter the mount point path (e.g., /mnt/windows): /mnt/windows
+Checking file system status...
+Partition successfully mounted in read/write mode at /mnt/windows.
+Do you want this partition to be mounted automatically at startup? (yes/no): yes
+Entry successfully added to /etc/fstab.
 ```
 
 ---
 
-## Dépannage
+## Troubleshooting
 
-- **"Windows is hibernated"** :
-  - Désactivez l'hibernation et le démarrage rapide sous Windows.
-- **"Impossible de récupérer l'UUID"** :
-  - Vérifiez que le périphérique sélectionné existe et contient un système de fichiers valide.
-
----
-
-## Avertissements
-
-- Modifiez `/etc/fstab` avec prudence. Une erreur peut empêcher votre système de démarrer correctement.
-- Utilisez ce script uniquement si vous comprenez les implications des montages NTFS sous Linux.
+- **"Windows is hibernated"**:
+  - Disable hibernation and fast startup in Windows.
+- **"Unable to retrieve UUID"**:
+  - Ensure the selected device exists and contains a valid file system.
 
 ---
 
-## Auteur
+## Warnings
+
+- Modify `/etc/fstab` with caution. Errors can prevent your system from booting properly.
+- Use this script only if you understand the implications of mounting NTFS partitions on Linux.
+
+---
+
+## Author
 GNANDI Salem
