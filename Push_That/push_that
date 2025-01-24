@@ -1,22 +1,185 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]; then
-    echo "Usage: $0 <message_commit>"
-    exit 1
-fi
+# Configuration des couleurs
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
 
-git add .
+# Fonction d'aide étendue
+show_help() {
+    echo -e "${YELLOW}Usage:${NC}"
+    echo "  $0 [OPTIONS] <commit_message>"
+    echo -e "${YELLOW}Options:${NC}"
+    echo "  -h, --help       Affiche cette aide"
+    echo "  -f, --force      Force le push sans confirmation"
+    echo "  -b, --branch     Spécifie une branche particulière"
+    echo "  -s, --select     Mode de sélection interactive des fichiers"
+    echo "  --uncommit       Annule le dernier commit (conserve les modifications)"
+    echo "  --remove-file    Retire un fichier du dernier commit"
+    echo -e "\n${YELLOW}Exemples:${NC}"
+    echo "  $0 'Mon commit' -s"
+    echo "  $0 --uncommit"
+    echo "  $0 --remove-file"
+    exit 0
+}
 
-git status
+# Vérification des dépendances
+check_dependencies() {
+    if ! command -v fzf &> /dev/null; then
+        echo -e "${RED}Erreur: fzf n'est pas installé!${NC}"
+        echo "Installez-le avec:"
+        echo "  sudo apt install fzf"
+        exit 1
+    fi
+}
 
-read -p "Do you really want to add this changes ? (y/n) " confirm
-if [ "$confirm" != "y" ]; then
-    echo "Push cancelled."
-    exit 1
-fi
+# Vérification du dépôt Git
+check_git_repo() {
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo -e "${RED}Erreur : Ce répertoire n'est pas un dépôt Git!${NC}"
+        exit 1
+    fi
+}
 
-git commit -m "$1"
+# Sélection interactive des fichiers
+select_files() {
+    echo -e "${CYAN}Sélection des fichiers (Tab pour multi-sélection):${NC}"
+    local files
+    files=$(git -c color.status=always status --short | \
+        fzf --ansi --multi --height 40% --reverse \
+        --preview 'git diff --color=always -- {-1}' \
+        --header "↓↑ navigation | Tab selection | Ctrl-C annuler" | \
+        awk '{print $2}')
+    
+    if [ -n "$files" ]; then
+        echo -e "${BLUE}Fichiers sélectionnés:${NC}"
+        echo "$files" | xargs -I{} echo -e " - ${GREEN}{}${NC}"
+        git add $files
+    else
+        echo -e "${RED}Aucun fichier sélectionné!${NC}"
+        exit 1
+    fi
+}
 
-git push origin main
+# Annulation du dernier commit
+uncommit() {
+    echo -e "${YELLOW}Annulation du dernier commit...${NC}"
+    git reset --soft HEAD~1
+    echo -e "${GREEN}✓ Dernier commit annulé (modifications conservées)${NC}"
+    exit 0
+}
 
-echo "Push done."
+# Retrait d'un fichier d'un commit
+remove_file() {
+    echo -e "${CYAN}Choisissez un fichier à retirer:${NC}"
+    local file=$(git show --name-only --pretty=format: | fzf --height 40% --reverse)
+    
+    if [ -n "$file" ]; then
+        git reset HEAD~1 --soft
+        git restore --staged "$file"
+        git commit -m "$(git log -1 --pretty=%B)" > /dev/null
+        echo -e "${GREEN}✓ Fichier '${MAGENTA}$file${GREEN}' retiré du commit${NC}"
+    else
+        echo -e "${RED}Aucun fichier sélectionné!${NC}"
+    fi
+    exit 0
+}
+
+# Confirmation avant push
+confirm_action() {
+    if [ "$FORCE" = false ]; then
+        echo -e "${YELLOW}Modifications à pousser sur ${BLUE}${TARGET_BRANCH}${YELLOW}:${NC}"
+        git --no-pager diff --stat --cached
+        read -p "Confirmer le push ? (y/N) " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            echo -e "${RED}Annulation du push!${NC}"
+            exit 0
+        fi
+    fi
+}
+
+# Workflow principal
+main() {
+    check_dependencies
+    check_git_repo
+
+    CURRENT_BRANCH=$(git symbolic-ref --short HEAD)
+    REMOTE="origin"
+    FORCE=false
+    SELECT_MODE=false
+    MESSAGE=""
+    TARGET_BRANCH="$CURRENT_BRANCH"
+
+    # Traitement des arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_help
+                ;;
+            -f|--force)
+                FORCE=true
+                shift
+                ;;
+            -b|--branch)
+                TARGET_BRANCH="$2"
+                shift
+                shift
+                ;;
+            -s|--select)
+                SELECT_MODE=true
+                shift
+                ;;
+            --uncommit)
+                uncommit
+                ;;
+            --remove-file)
+                remove_file
+                ;;
+            *)
+                MESSAGE="$1"
+                shift
+                ;;
+        esac
+    done
+
+    # Validation du message
+    if [ -z "$MESSAGE" ] && [ "$SELECT_MODE" = false ]; then
+        echo -e "${RED}Erreur : Message de commit requis!${NC}"
+        show_help
+        exit 1
+    fi
+
+    # Ajout des fichiers
+    if [ "$SELECT_MODE" = true ]; then
+        select_files
+    else
+        echo -e "${GREEN}Ajout de tous les changements...${NC}"
+        git add .
+    fi
+
+    # Confirmation
+    confirm_action
+
+    # Commit
+    echo -e "${GREEN}Création du commit...${NC}"
+    if ! git commit -m "$MESSAGE"; then
+        echo -e "${RED}Erreur lors du commit!${NC}"
+        exit 1
+    fi
+
+    # Push
+    echo -e "${GREEN}Poussage vers ${BLUE}${REMOTE}/${TARGET_BRANCH}${GREEN}...${NC}"
+    if ! git push "${REMOTE}" "${TARGET_BRANCH}"; then
+        echo -e "${RED}Erreur lors du push!${NC}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}✓ Push réussi!${NC}"
+}
+
+# Exécution
+main "$@"
