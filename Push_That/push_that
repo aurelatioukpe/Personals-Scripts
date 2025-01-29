@@ -14,77 +14,129 @@ show_help() {
     echo -e "${YELLOW}Usage:${NC}"
     echo "  $0 [OPTIONS] <commit_message>"
     echo -e "${YELLOW}Options:${NC}"
-    echo "  -h, --help       Affiche cette aide"
-    echo "  -f, --force      Force le push sans confirmation"
-    echo "  -b, --branch     Spécifie une branche particulière"
-    echo "  -s, --select     Mode de sélection interactive des fichiers"
-    echo "  --uncommit       Annule le dernier commit (conserve les modifications)"
-    echo "  --remove-file    Retire un fichier du dernier commit"
-    echo -e "\n${YELLOW}Exemples:${NC}"
-    echo "  $0 'Mon commit' -s"
+    echo "  -h, --help       Show this help message"
+    echo "  -f, --force      Force push without confirmation"
+    echo "  -b, --branch     Specify a particular branch"
+    echo "  -s, --select     Interactive file selection mode"
+    echo "  --uncommit       Undo the last commit (keep changes)"
+    echo "  --remove-file    Remove a file from the last commit"
+    echo -e "\n${YELLOW}Examples:${NC}"
+    echo "  $0 'My commit' -s"
     echo "  $0 --uncommit"
     echo "  $0 --remove-file"
     exit 0
 }
 
+# Détection du système d'exploitation
+detect_os() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        OS=$NAME
+    elif type lsb_release >/dev/null 2>&1; then
+        OS=$(lsb_release -si)
+    elif [ -f /etc/lsb-release ]; then
+        . /etc/lsb-release
+        OS=$DISTRIB_ID
+    elif [ -f /etc/debian_version ]; then
+        OS=Debian
+    elif [ -f /etc/redhat-release ]; then
+        OS=$(cat /etc/redhat-release | cut -d ' ' -f 1)
+    else
+        OS=$(uname -s)
+    fi
+    echo $OS
+}
+
+# Installation de fzf en fonction du système d'exploitation
+install_fzf() {
+    OS=$(detect_os)
+    case $OS in
+        "Ubuntu" | "Debian" | "Linux Mint")
+            sudo apt update && sudo apt install -y fzf
+            ;;
+        "Fedora")
+            sudo dnf install -y fzf
+            ;;
+        "CentOS" | "Red Hat Enterprise Linux")
+            sudo yum install -y fzf
+            ;;
+        "Arch Linux" | "Manjaro Linux")
+            sudo pacman -S --noconfirm fzf
+            ;;
+        "macOS")
+            brew install fzf
+            ;;
+        *)
+            echo -e "${RED}Error: Unsupported operating system!${NC}"
+            exit 1
+            ;;
+    esac
+}
+
 # Vérification des dépendances
 check_dependencies() {
     if ! command -v fzf &> /dev/null; then
-        echo -e "${RED}Erreur: fzf n'est pas installé!${NC}"
-        echo "Installez-le avec:"
-        echo "  sudo apt install fzf"
-        exit 1
+        echo -e "${RED}Error: fzf is not installed!${NC}"
+        read -p "${GREEN}Do you want to install it? (yes/no) " answer
+        case "$answer" in
+            [yY]es)
+                install_fzf
+                ;;
+            [Nn]o)
+                exit 1
+                ;;
+        esac
     fi
 }
 
 # Vérification du dépôt Git
 check_git_repo() {
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        echo -e "${RED}Erreur : Ce répertoire n'est pas un dépôt Git!${NC}"
+        echo -e "${RED}Error: This directory is not a Git repository!${NC}"
         exit 1
     fi
 }
 
 # Sélection interactive des fichiers
 select_files() {
-    echo -e "${CYAN}Sélection des fichiers (Tab pour multi-sélection):${NC}"
+    echo -e "${CYAN}Select files (Tab for multi-selection):${NC}"
     local files
     files=$(git -c color.status=always status --short | \
         fzf --ansi --multi --height 40% --reverse \
         --preview 'git diff --color=always -- {-1}' \
-        --header "↓↑ navigation | Tab selection | Ctrl-C annuler" | \
+        --header "↓↑ navigation | Tab selection | Ctrl-C cancel" | \
         awk '{print $2}')
     
     if [ -n "$files" ]; then
-        echo -e "${BLUE}Fichiers sélectionnés:${NC}"
+        echo -e "${BLUE}Selected files:${NC}"
         echo "$files" | xargs -I{} echo -e " - ${GREEN}{}${NC}"
         git add $files
     else
-        echo -e "${RED}Aucun fichier sélectionné!${NC}"
+        echo -e "${RED}No files selected!${NC}"
         exit 1
     fi
 }
 
 # Annulation du dernier commit
 uncommit() {
-    echo -e "${YELLOW}Annulation du dernier commit...${NC}"
+    echo -e "${YELLOW}Undoing the last commit...${NC}"
     git reset --soft HEAD~1
-    echo -e "${GREEN}✓ Dernier commit annulé (modifications conservées)${NC}"
+    echo -e "${GREEN}✓ Last commit undone (changes preserved)${NC}"
     exit 0
 }
 
 # Retrait d'un fichier d'un commit
 remove_file() {
-    echo -e "${CYAN}Choisissez un fichier à retirer:${NC}"
+    echo -e "${CYAN}Choose a file to remove:${NC}"
     local file=$(git show --name-only --pretty=format: | fzf --height 40% --reverse)
     
     if [ -n "$file" ]; then
         git reset HEAD~1 --soft
         git restore --staged "$file"
         git commit -m "$(git log -1 --pretty=%B)" > /dev/null
-        echo -e "${GREEN}✓ Fichier '${MAGENTA}$file${GREEN}' retiré du commit${NC}"
+        echo -e "${GREEN}✓ File '${MAGENTA}$file${GREEN}' removed from the commit${NC}"
     else
-        echo -e "${RED}Aucun fichier sélectionné!${NC}"
+        echo -e "${RED}No file selected!${NC}"
     fi
     exit 0
 }
@@ -92,11 +144,11 @@ remove_file() {
 # Confirmation avant push
 confirm_action() {
     if [ "$FORCE" = false ]; then
-        echo -e "${YELLOW}Modifications à pousser sur ${BLUE}${TARGET_BRANCH}${YELLOW}:${NC}"
+        echo -e "${YELLOW}Changes to push to ${BLUE}${TARGET_BRANCH}${YELLOW}:${NC}"
         git --no-pager diff --stat --cached
-        read -p "Confirmer le push ? (y/N) " confirm
+        read -p "Confirm push? (y/N) " confirm
         if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-            echo -e "${RED}Annulation du push!${NC}"
+            echo -e "${RED}Push canceled!${NC}"
             exit 0
         fi
     fi
@@ -146,39 +198,47 @@ main() {
         esac
     done
 
-    # Validation du message
-    if [ -z "$MESSAGE" ] && [ "$SELECT_MODE" = false ]; then
-        echo -e "${RED}Erreur : Message de commit requis!${NC}"
-        show_help
-        exit 1
-    fi
-
     # Ajout des fichiers
     if [ "$SELECT_MODE" = true ]; then
         select_files
+        # Demander le message de commit après la sélection des fichiers
+        if [ -z "$MESSAGE" ]; then
+            read -p "${CYAN}Enter commit message: ${NC}" MESSAGE
+            if [ -z "$MESSAGE" ]; then
+                echo -e "${RED}Error: Commit message is required!${NC}"
+                exit 1
+            fi
+        fi
     else
-        echo -e "${GREEN}Ajout de tous les changements...${NC}"
+        echo -e "${GREEN}Adding all changes...${NC}"
         git add .
+    fi
+
+    # Validation du message
+    if [ -z "$MESSAGE" ]; then
+        echo -e "${RED}Error: Commit message is required!${NC}"
+        show_help
+        exit 1
     fi
 
     # Confirmation
     confirm_action
 
     # Commit
-    echo -e "${GREEN}Création du commit...${NC}"
+    echo -e "${GREEN}Creating commit...${NC}"
     if ! git commit -m "$MESSAGE"; then
-        echo -e "${RED}Erreur lors du commit!${NC}"
+        echo -e "${RED}Error during commit!${NC}"
         exit 1
     fi
 
     # Push
-    echo -e "${GREEN}Poussage vers ${BLUE}${REMOTE}/${TARGET_BRANCH}${GREEN}...${NC}"
+    echo -e "${GREEN}Pushing to ${BLUE}${REMOTE}/${TARGET_BRANCH}${GREEN}...${NC}"
     if ! git push "${REMOTE}" "${TARGET_BRANCH}"; then
-        echo -e "${RED}Erreur lors du push!${NC}"
+        echo -e "${RED}Error during push!${NC}"
         exit 1
     fi
 
-    echo -e "${GREEN}✓ Push réussi!${NC}"
+    echo -e "${GREEN}✓ Push successful!${NC}"
 }
 
 # Exécution
