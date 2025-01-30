@@ -203,7 +203,7 @@ main() {
         select_files
         # Demander le message de commit après la sélection des fichiers
         if [ -z "$MESSAGE" ]; then
-            read -p "${CYAN}Enter commit message: ${NC}" MESSAGE
+            read -p "${RED}Enter commit message: ${NC}" MESSAGE
             if [ -z "$MESSAGE" ]; then
                 echo -e "${RED}Error: Commit message is required!${NC}"
                 exit 1
