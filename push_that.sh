@@ -27,12 +27,15 @@ show_help() {
     echo "  -b, --branch     Specify a particular branch"
     echo "  -r, --remote     Specify remote (default: origin)"
     echo "  -s, --select     Interactive file selection mode"
+    echo "  -i, --interactive Start interactive menu mode"
     echo "  -d, --dry-run    Show what would be done without executing"
     echo "  --uncommit       Undo the last commit (keep changes)"
     echo "  --remove-file    Remove a file from the last commit"
     echo "  --check-deps     Check and install dependencies"
     echo -e "\n${YELLOW}Examples:${NC}"
-    echo "  $0 'My commit message' -s"
+    echo "  $0                              # Interactive menu mode"
+    echo "  $0 -i                           # Interactive menu mode"
+    echo "  $0 'My commit message' -s       # File selection mode"
     echo "  $0 'Hotfix' -b hotfix -r upstream"
     echo "  $0 --uncommit"
     echo "  $0 --remove-file"
@@ -374,7 +377,7 @@ confirm_action() {
 show_version() {
     echo -e "${YELLOW}Git Push Assistant${NC}"
     echo -e "Version: ${GREEN}${SCRIPT_VERSION}${NC}"
-    echo -e "Author: Updated script with modern features"
+    echo -e "Author: Scorpi777 X Traffy"
     echo -e "Repository: Enhanced with better error handling and UX"
     exit 0
 }
@@ -387,8 +390,234 @@ check_deps_only() {
     exit 0
 }
 
+# Menu interactif principal
+interactive_menu() {
+    check_dependencies
+    check_git_repo
+    
+    local current_branch
+    current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+    
+    # Configuration par défaut
+    local config_remote="origin"
+    local config_branch="$current_branch"
+    local config_force="false"
+    local config_dry_run="false"
+    local config_select_files="false"
+    
+    while true; do
+        # Status du repository
+        local status_info=""
+        local changes_count
+        changes_count=$(git status --porcelain 2>/dev/null | wc -l)
+        local commits_ahead
+        commits_ahead=$(git rev-list --count "@{u}"..) 2>/dev/null || commits_ahead="0"
+        
+        if [[ $changes_count -gt 0 ]]; then
+            status_info="${YELLOW}📝 $changes_count uncommitted changes${NC}"
+        elif [[ $commits_ahead -gt 0 ]]; then
+            status_info="${BLUE}📤 $commits_ahead unpushed commits${NC}"
+        else
+            status_info="${GREEN}✓ Repository is clean${NC}"
+        fi
+        
+        # Menu principal
+        local menu_options=(
+            "🚀 Commit & Push|Standard commit and push workflow"
+            "📁 Select Files & Push|Interactive file selection mode"
+            "↩️  Undo Last Commit|Reset last commit (keep changes)"
+            "🗑️  Remove File from Commit|Remove specific files from last commit"
+            "🔧 Configure Options|Set branch, remote, and other options"
+            "ℹ️  Repository Info|Show current repository status"
+            "❓ Help|Show help and usage information"
+            "🚪 Exit|Exit the program"
+        )
+        
+        echo -e "\n${CYAN}═══════════════════════════════════════${NC}"
+        echo -e "${YELLOW}🔧 Git Push Assistant v${SCRIPT_VERSION}${NC}"
+        echo -e "${CYAN}═══════════════════════════════════════${NC}"
+        echo -e "📂 Repository: $(basename "$(git rev-parse --show-toplevel)")"
+        echo -e "🌿 Branch: ${GREEN}$current_branch${NC} → ${BLUE}$config_remote/$config_branch${NC}"
+        echo -e "📊 Status: $status_info"
+        echo -e "⚙️  Config: Force=${config_force} | Dry-run=${config_dry_run} | Select-files=${config_select_files}"
+        echo -e "${CYAN}═══════════════════════════════════════${NC}\n"
+        
+        local selected_option
+        selected_option=$(printf "%s\n" "${menu_options[@]}" | \
+            fzf --ansi --height 50% --reverse \
+            --header "Select an action (↓↑ navigate | Enter select | Ctrl-C exit)" \
+            --preview 'echo -e "$(echo {} | cut -d"|" -f2)\n\nCurrent configuration:\n• Remote: '"$config_remote"'\n• Branch: '"$config_branch"'\n• Force: '"$config_force"'\n• Dry run: '"$config_dry_run"'\n• Select files: '"$config_select_files"'"' \
+            --preview-window=right:40% \
+            --border=rounded \
+            --prompt="🔧 Action: ")
+        
+        [[ -z "$selected_option" ]] && break
+        
+        local action
+        action=$(echo "$selected_option" | cut -d'|' -f1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        
+        case "$action" in
+            "🚀 Commit & Push")
+                echo -e "${CYAN}Standard Commit & Push Workflow${NC}"
+                read -p "📝 Enter commit message: " commit_message
+                if [[ -z "$commit_message" ]]; then
+                    echo -e "${RED}❌ Commit message is required${NC}"
+                    read -p "Press Enter to continue..."
+                    continue
+                fi
+                
+                # Execute workflow
+                FORCE="$config_force"
+                validate_branch "$config_branch" "$config_remote"
+                
+                if [[ "$config_branch" != "$current_branch" ]]; then
+                    git checkout "$config_branch"
+                fi
+                
+                if git status --porcelain | grep -q .; then
+                    git add .
+                    echo -e "${GREEN}✓ Added all changes${NC}"
+                fi
+                
+                confirm_action "$config_remote" "$config_branch" "$config_dry_run"
+                
+                if [[ "$config_dry_run" == "false" ]]; then
+                    git commit -m "$commit_message"
+                    git push "$config_remote" "$config_branch"
+                    echo -e "${GREEN}✅ Successfully pushed to $config_remote/$config_branch${NC}"
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+                
+            "📁 Select Files & Push")
+                echo -e "${CYAN}Interactive File Selection Mode${NC}"
+                if ! git status --porcelain | grep -q .; then
+                    echo -e "${YELLOW}⚠️  No changes to commit${NC}"
+                    read -p "Press Enter to continue..."
+                    continue
+                fi
+                
+                select_files
+                
+                read -p "📝 Enter commit message: " commit_message
+                if [[ -z "$commit_message" ]]; then
+                    echo -e "${RED}❌ Commit message is required${NC}"
+                    read -p "Press Enter to continue..."
+                    continue
+                fi
+                
+                FORCE="$config_force"
+                confirm_action "$config_remote" "$config_branch" "$config_dry_run"
+                
+                if [[ "$config_dry_run" == "false" ]]; then
+                    git commit -m "$commit_message"
+                    git push "$config_remote" "$config_branch"
+                    echo -e "${GREEN}✅ Successfully pushed selected files${NC}"
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+                
+            "↩️  Undo Last Commit")
+                uncommit
+                ;;
+                
+            "🗑️  Remove File from Commit")
+                remove_file
+                ;;
+                
+            "🔧 Configure Options")
+                configure_options() {
+                    local config_menu=(
+                        "🌿 Change Target Branch ($config_branch)"
+                        "🔗 Change Remote ($config_remote)"
+                        "💪 Toggle Force Push ($config_force)"
+                        "🔍 Toggle Dry Run ($config_dry_run)"
+                        "📁 Toggle File Selection ($config_select_files)"
+                        "↩️  Back to Main Menu"
+                    )
+                    
+                    local config_selection
+                    config_selection=$(printf "%s\n" "${config_menu[@]}" | \
+                        fzf --height 40% --reverse \
+                        --header "Configure Options" \
+                        --prompt="⚙️  Setting: ")
+                    
+                    case "$config_selection" in
+                        "🌿 Change Target Branch"*)
+                            echo -e "${YELLOW}Available branches:${NC}"
+                            git branch -a | grep -v HEAD
+                            echo
+                            read -p "Enter target branch name: " new_branch
+                            if [[ -n "$new_branch" ]]; then
+                                config_branch="$new_branch"
+                                echo -e "${GREEN}✓ Target branch set to: $config_branch${NC}"
+                            fi
+                            ;;
+                        "🔗 Change Remote"*)
+                            echo -e "${YELLOW}Available remotes:${NC}"
+                            git remote -v
+                            echo
+                            read -p "Enter remote name: " new_remote
+                            if [[ -n "$new_remote" ]]; then
+                                config_remote="$new_remote"
+                                echo -e "${GREEN}✓ Remote set to: $config_remote${NC}"
+                            fi
+                            ;;
+                        "💪 Toggle Force Push"*)
+                            config_force=$([[ "$config_force" == "true" ]] && echo "false" || echo "true")
+                            echo -e "${GREEN}✓ Force push: $config_force${NC}"
+                            ;;
+                        "🔍 Toggle Dry Run"*)
+                            config_dry_run=$([[ "$config_dry_run" == "true" ]] && echo "false" || echo "true")
+                            echo -e "${GREEN}✓ Dry run: $config_dry_run${NC}"
+                            ;;
+                        "📁 Toggle File Selection"*)
+                            config_select_files=$([[ "$config_select_files" == "true" ]] && echo "false" || echo "true")
+                            echo -e "${GREEN}✓ File selection mode: $config_select_files${NC}"
+                            ;;
+                        *) return ;;
+                    esac
+                    read -p "Press Enter to continue..."
+                }
+                configure_options
+                ;;
+                
+            "ℹ️  Repository Info")
+                echo -e "${CYAN}📊 Repository Information${NC}"
+                echo -e "${YELLOW}═════════════════════════${NC}"
+                echo -e "📂 Repository: $(basename "$(git rev-parse --show-toplevel)")"
+                echo -e "📍 Location: $(git rev-parse --show-toplevel)"
+                echo -e "🌿 Current Branch: $(git symbolic-ref --short HEAD)"
+                echo -e "🔗 Remotes:"
+                git remote -v | sed 's/^/  /'
+                echo -e "📝 Recent Commits:"
+                git --no-pager log --oneline -5 | sed 's/^/  /'
+                echo -e "📊 Status:"
+                git status --short | sed 's/^/  /' || echo "  Working directory clean"
+                echo -e "${YELLOW}═════════════════════════${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+                
+            "❓ Help")
+                show_help
+                ;;
+                
+            "🚪 Exit"|*)
+                echo -e "${GREEN}👋 Goodbye!${NC}"
+                exit 0
+                ;;
+        esac
+    done
+}
+
 # Workflow principal
 main() {
+    # Si aucun argument n'est fourni, lancer le menu interactif
+    if [[ $# -eq 0 ]]; then
+        interactive_menu
+        return 0
+    fi
+    
     # Initialize variables
     local current_branch
     current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
@@ -410,6 +639,9 @@ main() {
                 ;;
             --check-deps)
                 check_deps_only
+                ;;
+            -i|--interactive)
+                interactive_menu
                 ;;
             -f|--force)
                 force=true
