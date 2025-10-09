@@ -455,10 +455,11 @@ interactive_menu() {
         local menu_options=(
             "🚀 Commit & Push|Standard commit and push workflow"
             "📁 Select Files & Push|Interactive file selection mode"
+            "📜 Commit History|View and interact with commit history"
+            "📊 Repository Status|Detailed repository status and information"
             "↩️  Undo Last Commit|Reset last commit (keep changes)"
             "🗑️  Remove File from Commit|Remove specific files from last commit"
             "🔧 Configure Options|Set branch, remote, and other options"
-            "ℹ️  Repository Info|Show current repository status"
             "❓ Help|Show help and usage information"
             "🚪 Exit|Exit the program"
         )
@@ -559,9 +560,12 @@ interactive_menu() {
                 configure_options_menu
                 ;;
                 
-            "ℹ️  Repository Info")
-                show_repository_info
-                read -p "Press Enter to return to main menu..."
+            "📜 Commit History")
+                show_commit_history_menu
+                ;;
+                
+            "📊 Repository Status")
+                show_repository_status_menu
                 ;;
                 
             "❓ Help")
@@ -666,6 +670,430 @@ show_repository_info() {
     echo -e "📊 Status:"
     git status --short | sed 's/^/  /' || echo "  Working directory clean"
     echo -e "${YELLOW}═════════════════════════${NC}"
+}
+
+# Commit history menu with interactive options
+show_commit_history_menu() {
+    while true; do
+        local history_menu=(
+            "📋 View Recent Commits (10)|Show the last 10 commits with details"
+            "📜 View All Commits|Browse complete commit history with pager"
+            "🔍 Search in History|Search commits by message, author, or hash"
+            "📊 Commit Statistics|Show repository statistics and metrics"
+            "🔄 Cherry-pick Commit|Pick a specific commit to apply"
+            "🔀 Compare Commits|Compare differences between commits"
+            "↩️  Back to Main Menu|Return to the main menu"
+        )
+        
+        echo -e "\n${CYAN}═══════════════════════════════════════${NC}"
+        echo -e "${YELLOW}📜 Commit History Management${NC}"
+        echo -e "${CYAN}═══════════════════════════════════════${NC}"
+        
+        local history_selection
+        history_selection=$(printf "%s\n" "${history_menu[@]}" | \
+            fzf --ansi --height 50% --reverse \
+            --header "Commit History Options (↓↑ navigate | Enter select | Ctrl-C back)" \
+            --preview 'echo -e "$(echo {} | cut -d"|" -f2)\n\nRepository: '"$(basename "$(git rev-parse --show-toplevel)")"'\nCurrent Branch: '"$(git symbolic-ref --short HEAD)"'\nTotal Commits: '"$(git rev-list --count HEAD 2>/dev/null || echo "N/A")"'"' \
+            --preview-window=right:40% \
+            --border=rounded \
+            --prompt="📜 Action: ")
+        
+        [[ -z "$history_selection" ]] && break
+        
+        local action
+        action=$(echo "$history_selection" | cut -d'|' -f1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        
+        case "$action" in
+            "📋 View Recent Commits (10)")
+                echo -e "${CYAN}📋 Recent Commits (Last 10)${NC}"
+                echo -e "${YELLOW}══════════════════════════════════${NC}"
+                git --no-pager log --oneline --graph --decorate -10
+                echo -e "${YELLOW}══════════════════════════════════${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            "📜 View All Commits")
+                echo -e "${CYAN}📜 Complete Commit History${NC}"
+                git log --oneline --graph --decorate --all
+                read -p "Press Enter to continue..."
+                ;;
+            "🔍 Search in History")
+                search_in_history
+                ;;
+            "📊 Commit Statistics")
+                show_commit_statistics
+                ;;
+            "🔄 Cherry-pick Commit")
+                cherry_pick_interactive
+                ;;
+            "🔀 Compare Commits")
+                compare_commits_interactive
+                ;;
+            "↩️  Back to Main Menu"|*)
+                break
+                ;;
+        esac
+    done
+}
+
+# Repository status with detailed information
+show_repository_status_menu() {
+    while true; do
+        local status_menu=(
+            "📊 Full Status|Complete repository status with all details"
+            "🌿 Branch Information|Detailed branch status and tracking info"
+            "📝 Working Directory|Show all changes in working directory"
+            "📦 Staging Area|Show files in staging area"
+            "🔗 Remote Status|Check status with all remotes"
+            "📈 File Statistics|Statistics about files and changes"
+            "↩️  Back to Main Menu|Return to the main menu"
+        )
+        
+        echo -e "\n${CYAN}═══════════════════════════════════════${NC}"
+        echo -e "${YELLOW}📊 Repository Status${NC}"
+        echo -e "${CYAN}═══════════════════════════════════════${NC}"
+        
+        local status_selection
+        status_selection=$(printf "%s\n" "${status_menu[@]}" | \
+            fzf --ansi --height 50% --reverse \
+            --header "Repository Status Options (↓↑ navigate | Enter select | Ctrl-C back)" \
+            --preview 'echo -e "$(echo {} | cut -d"|" -f2)"' \
+            --preview-window=right:40% \
+            --border=rounded \
+            --prompt="📊 View: ")
+        
+        [[ -z "$status_selection" ]] && break
+        
+        local action
+        action=$(echo "$status_selection" | cut -d'|' -f1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        
+        case "$action" in
+            "📊 Full Status")
+                show_full_repository_status
+                ;;
+            "🌿 Branch Information")
+                show_branch_information
+                ;;
+            "📝 Working Directory")
+                show_working_directory_status
+                ;;
+            "📦 Staging Area")
+                show_staging_area_status
+                ;;
+            "🔗 Remote Status")
+                show_remote_status
+                ;;
+            "📈 File Statistics")
+                show_file_statistics
+                ;;
+            "↩️  Back to Main Menu"|*)
+                break
+                ;;
+        esac
+    done
+}
+
+# Search in commit history
+search_in_history() {
+    echo -e "${CYAN}🔍 Search in Commit History${NC}"
+    echo -e "Search options:"
+    echo -e "1. Search by commit message"
+    echo -e "2. Search by author"
+    echo -e "3. Search by file changes"
+    echo -e "4. Search by commit hash"
+    echo
+    read -p "Choose search type (1-4): " search_type
+    
+    case "$search_type" in
+        1)
+            read -p "Enter search term for commit messages: " search_term
+            if [[ -n "$search_term" ]]; then
+                echo -e "${YELLOW}Commits matching message '$search_term':${NC}"
+                git --no-pager log --oneline --grep="$search_term" -i
+            fi
+            ;;
+        2)
+            read -p "Enter author name or email: " author_term
+            if [[ -n "$author_term" ]]; then
+                echo -e "${YELLOW}Commits by author '$author_term':${NC}"
+                git --no-pager log --oneline --author="$author_term" -i
+            fi
+            ;;
+        3)
+            read -p "Enter filename or path: " file_term
+            if [[ -n "$file_term" ]]; then
+                echo -e "${YELLOW}Commits affecting '$file_term':${NC}"
+                git --no-pager log --oneline -- "$file_term"
+            fi
+            ;;
+        4)
+            read -p "Enter commit hash (partial): " hash_term
+            if [[ -n "$hash_term" ]]; then
+                echo -e "${YELLOW}Commits matching hash '$hash_term':${NC}"
+                git --no-pager log --oneline | grep -i "$hash_term"
+            fi
+            ;;
+        *)
+            echo -e "${RED}Invalid option${NC}"
+            ;;
+    esac
+    read -p "Press Enter to continue..."
+}
+
+# Show commit statistics
+show_commit_statistics() {
+    echo -e "${CYAN}📊 Repository Statistics${NC}"
+    echo -e "${YELLOW}═══════════════════════════════════${NC}"
+    
+    # Basic stats
+    local total_commits=$(git rev-list --count HEAD 2>/dev/null || echo "0")
+    local contributors=$(git shortlog -sn --all | wc -l)
+    local branches=$(git branch -a | wc -l)
+    local tags=$(git tag | wc -l)
+    
+    echo -e "📈 General Statistics:"
+    echo -e "  • Total commits: $total_commits"
+    echo -e "  • Contributors: $contributors"
+    echo -e "  • Branches: $branches"
+    echo -e "  • Tags: $tags"
+    echo
+    
+    # Top contributors
+    echo -e "👥 Top Contributors:"
+    git shortlog -sn --all | head -5 | sed 's/^/  /'
+    echo
+    
+    # Recent activity
+    echo -e "📅 Recent Activity (last 30 days):"
+    local recent_commits=$(git log --since="30 days ago" --oneline | wc -l)
+    echo -e "  • Commits in last 30 days: $recent_commits"
+    
+    # File types
+    echo -e "📁 File Types in Repository:"
+    git ls-files | grep -E '\.[^.]*$' | sed 's/.*\.//' | sort | uniq -c | sort -nr | head -5 | sed 's/^/  /'
+    
+    echo -e "${YELLOW}═══════════════════════════════════${NC}"
+    read -p "Press Enter to continue..."
+}
+
+# Interactive cherry-pick
+cherry_pick_interactive() {
+    echo -e "${CYAN}🔄 Interactive Cherry-pick${NC}"
+    echo -e "${YELLOW}Recent commits available for cherry-pick:${NC}"
+    
+    # Show recent commits with numbers
+    git --no-pager log --oneline -10 | nl -w2 -s'. '
+    echo
+    
+    read -p "Enter the commit hash to cherry-pick (or 'back' to return): " commit_hash
+    
+    if [[ "$commit_hash" == "back" || -z "$commit_hash" ]]; then
+        return
+    fi
+    
+    # Validate commit hash exists
+    if git cat-file -e "$commit_hash" 2>/dev/null; then
+        echo -e "${YELLOW}Cherry-picking commit: $commit_hash${NC}"
+        git show --stat "$commit_hash"
+        echo
+        read -p "Proceed with cherry-pick? (y/N): " confirm
+        
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            if git cherry-pick "$commit_hash"; then
+                echo -e "${GREEN}✓ Cherry-pick successful${NC}"
+            else
+                echo -e "${RED}❌ Cherry-pick failed - resolve conflicts manually${NC}"
+            fi
+        fi
+    else
+        echo -e "${RED}❌ Invalid commit hash${NC}"
+    fi
+    
+    read -p "Press Enter to continue..."
+}
+
+# Compare commits interactively
+compare_commits_interactive() {
+    echo -e "${CYAN}🔀 Compare Commits${NC}"
+    echo -e "${YELLOW}Recent commits:${NC}"
+    
+    git --no-pager log --oneline -10 | nl -w2 -s'. '
+    echo
+    
+    read -p "Enter first commit hash: " commit1
+    read -p "Enter second commit hash: " commit2
+    
+    if [[ -n "$commit1" && -n "$commit2" ]]; then
+        if git cat-file -e "$commit1" 2>/dev/null && git cat-file -e "$commit2" 2>/dev/null; then
+            echo -e "${YELLOW}Comparing $commit1 with $commit2:${NC}"
+            git diff --stat "$commit1" "$commit2"
+            echo
+            read -p "Show detailed diff? (y/N): " show_diff
+            
+            if [[ "$show_diff" =~ ^[Yy]$ ]]; then
+                git diff "$commit1" "$commit2"
+            fi
+        else
+            echo -e "${RED}❌ One or both commit hashes are invalid${NC}"
+        fi
+    fi
+    
+    read -p "Press Enter to continue..."
+}
+
+# Detailed repository status functions
+show_full_repository_status() {
+    echo -e "${CYAN}📊 Complete Repository Status${NC}"
+    echo -e "${YELLOW}════════════════════════════════════════${NC}"
+    
+    # Repository info
+    echo -e "📂 Repository: $(basename "$(git rev-parse --show-toplevel)")"
+    echo -e "📍 Path: $(git rev-parse --show-toplevel)"
+    echo -e "🌿 Current Branch: $(git symbolic-ref --short HEAD 2>/dev/null || echo "HEAD detached")"
+    echo
+    
+    # Status
+    echo -e "📋 Git Status:"
+    git status --short | sed 's/^/  /' || echo "  Working directory clean"
+    echo
+    
+    # Remotes
+    echo -e "🔗 Remotes:"
+    git remote -v | sed 's/^/  /'
+    echo
+    
+    # Recent commits
+    echo -e "📜 Recent Commits:"
+    git --no-pager log --oneline -5 | sed 's/^/  /'
+    
+    echo -e "${YELLOW}════════════════════════════════════════${NC}"
+    read -p "Press Enter to continue..."
+}
+
+show_branch_information() {
+    echo -e "${CYAN}🌿 Branch Information${NC}"
+    echo -e "${YELLOW}═══════════════════════${NC}"
+    
+    echo -e "Current Branch: $(git symbolic-ref --short HEAD 2>/dev/null || echo "HEAD detached")"
+    echo
+    
+    echo -e "All Branches:"
+    git branch -vv | sed 's/^/  /'
+    echo
+    
+    echo -e "Remote Branches:"
+    git branch -r | sed 's/^/  /'
+    
+    # Branch tracking info
+    local current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+    if [[ -n "$current_branch" ]]; then
+        echo
+        echo -e "Tracking Information:"
+        local upstream=$(git rev-parse --abbrev-ref "$current_branch@{upstream}" 2>/dev/null)
+        if [[ -n "$upstream" ]]; then
+            echo -e "  • Upstream: $upstream"
+            local ahead=$(git rev-list --count "$current_branch" ^"$upstream" 2>/dev/null || echo "0")
+            local behind=$(git rev-list --count "$upstream" ^"$current_branch" 2>/dev/null || echo "0")
+            echo -e "  • Ahead: $ahead commits"
+            echo -e "  • Behind: $behind commits"
+        else
+            echo -e "  • No upstream configured"
+        fi
+    fi
+    
+    echo -e "${YELLOW}═══════════════════════${NC}"
+    read -p "Press Enter to continue..."
+}
+
+show_working_directory_status() {
+    echo -e "${CYAN}📝 Working Directory Status${NC}"
+    echo -e "${YELLOW}═══════════════════════════${NC}"
+    
+    if git status --porcelain | grep -q .; then
+        echo -e "Modified Files:"
+        git status --short | grep '^.M' | sed 's/^/  /'
+        echo
+        
+        echo -e "Added Files:"
+        git status --short | grep '^A' | sed 's/^/  /'
+        echo
+        
+        echo -e "Deleted Files:"
+        git status --short | grep '^.D' | sed 's/^/  /'
+        echo
+        
+        echo -e "Untracked Files:"
+        git status --short | grep '^??' | sed 's/^/  /'
+    else
+        echo -e "✓ Working directory is clean"
+    fi
+    
+    echo -e "${YELLOW}═══════════════════════════${NC}"
+    read -p "Press Enter to continue..."
+}
+
+show_staging_area_status() {
+    echo -e "${CYAN}📦 Staging Area Status${NC}"
+    echo -e "${YELLOW}═══════════════════════${NC}"
+    
+    if git diff --cached --name-only | grep -q .; then
+        echo -e "Staged Files:"
+        git diff --cached --name-status | sed 's/^/  /'
+        echo
+        
+        echo -e "Staged Changes Summary:"
+        git diff --cached --stat | sed 's/^/  /'
+    else
+        echo -e "📦 Staging area is empty"
+    fi
+    
+    echo -e "${YELLOW}═══════════════════════${NC}"
+    read -p "Press Enter to continue..."
+}
+
+show_remote_status() {
+    echo -e "${CYAN}🔗 Remote Status${NC}"
+    echo -e "${YELLOW}═════════════════${NC}"
+    
+    echo -e "Configured Remotes:"
+    git remote -v | sed 's/^/  /'
+    echo
+    
+    # Check connectivity
+    echo -e "Remote Connectivity:"
+    for remote in $(git remote); do
+        echo -n "  • $remote: "
+        if git ls-remote "$remote" HEAD &>/dev/null; then
+            echo -e "${GREEN}✓ Connected${NC}"
+        else
+            echo -e "${RED}✗ Connection failed${NC}"
+        fi
+    done
+    
+    echo -e "${YELLOW}═════════════════${NC}"
+    read -p "Press Enter to continue..."
+}
+
+show_file_statistics() {
+    echo -e "${CYAN}📈 File Statistics${NC}"
+    echo -e "${YELLOW}═══════════════════════════${NC}"
+    
+    # Total files
+    local total_files=$(git ls-files | wc -l)
+    echo -e "📊 Total tracked files: $total_files"
+    echo
+    
+    # File extensions
+    echo -e "📁 File types:"
+    git ls-files | grep -E '\.[^.]*$' | sed 's/.*\.//' | sort | uniq -c | sort -nr | head -10 | sed 's/^/  /'
+    echo
+    
+    # Repository size
+    echo -e "💾 Repository size:"
+    du -sh .git/ | sed 's/^/  Git directory: /'
+    du -sh --exclude=.git . | sed 's/^/  Working directory: /'
+    
+    echo -e "${YELLOW}═══════════════════════════${NC}"
+    read -p "Press Enter to continue..."
 }
 
 # Workflow principal
