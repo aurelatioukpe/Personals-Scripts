@@ -13,7 +13,7 @@ readonly CYAN='\033[0;36m'
 readonly NC='\033[0m' # No Color
 
 # Script version
-readonly SCRIPT_VERSION="2.1.0"
+readonly SCRIPT_VERSION="3.0.0"
 
 # ASCII Art
 show_ascii_art() {
