@@ -15,6 +15,34 @@ readonly NC='\033[0m' # No Color
 # Script version
 readonly SCRIPT_VERSION="2.1.0"
 
+# ASCII Art
+show_ascii_art() {
+    echo -e "${CYAN}"
+    echo "    ╔═════════════════════════════════════════════════════════════════╗"
+    echo "    ║                                                                 ║"
+    echo "    ║    ███████╗ ██████╗ ██████╗ ██████╗ ██████╗ ██╗███████╗███████╗ ║"
+    echo "    ║    ██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔══██╗██║╚════██║╚════██║ ║"
+    echo "    ║    ███████╗██║     ██║   ██║██████╔╝██████╔╝██║    ██╔╝    ██╔╝ ║"
+    echo "    ║    ╚════██║██║     ██║   ██║██╔══██╗██╔═══╝ ██║   ██╔╝    ██╔╝  ║"
+    echo "    ║    ███████║╚██████╗╚██████╔╝██║  ██║██║     ██║  ██╔╝    ██╔╝   ║"
+    echo "    ║    ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝     ╚═╝    ║"
+    echo "    ║                                                                 ║"
+    echo "    ║                              ✖                                 ║"
+    echo "    ║                                                                 ║"
+    echo "    ║    ████████╗██████╗  █████╗ ███████╗███████╗██╗   ██╗          ║"
+    echo "    ║    ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██╔════╝╚██╗ ██╔╝          ║"
+    echo "    ║       ██║   ██████╔╝███████║█████╗  █████╗   ╚████╔╝           ║"
+    echo "    ║       ██║   ██╔══██╗██╔══██║██╔══╝  ██╔══╝    ╚██╔╝            ║"
+    echo "    ║       ██║   ██║  ██║██║  ██║██║     ██║        ██║             ║"
+    echo "    ║       ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝        ╚═╝             ║"
+    echo "    ║                                                                 ║"
+    echo "    ║                Git Push Assistant v${SCRIPT_VERSION}                    ║"
+    echo "    ║                                                                 ║"
+    echo "    ╚═════════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+    echo
+}
+
 # Fonction d'aide étendue
 show_help() {
     echo -e "${YELLOW}Git Push Assistant v${SCRIPT_VERSION}${NC}"
@@ -392,6 +420,8 @@ check_deps_only() {
 
 # Menu interactif principal
 interactive_menu() {
+    clear
+    show_ascii_art
     check_dependencies
     check_git_repo
     
