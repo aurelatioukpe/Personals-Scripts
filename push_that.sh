@@ -556,88 +556,116 @@ interactive_menu() {
                 ;;
                 
             "🔧 Configure Options")
-                configure_options() {
-                    local config_menu=(
-                        "🌿 Change Target Branch ($config_branch)"
-                        "🔗 Change Remote ($config_remote)"
-                        "💪 Toggle Force Push ($config_force)"
-                        "🔍 Toggle Dry Run ($config_dry_run)"
-                        "📁 Toggle File Selection ($config_select_files)"
-                        "↩️  Back to Main Menu"
-                    )
-                    
-                    local config_selection
-                    config_selection=$(printf "%s\n" "${config_menu[@]}" | \
-                        fzf --height 40% --reverse \
-                        --header "Configure Options" \
-                        --prompt="⚙️  Setting: ")
-                    
-                    case "$config_selection" in
-                        "🌿 Change Target Branch"*)
-                            echo -e "${YELLOW}Available branches:${NC}"
-                            git branch -a | grep -v HEAD
-                            echo
-                            read -p "Enter target branch name: " new_branch
-                            if [[ -n "$new_branch" ]]; then
-                                config_branch="$new_branch"
-                                echo -e "${GREEN}✓ Target branch set to: $config_branch${NC}"
-                            fi
-                            ;;
-                        "🔗 Change Remote"*)
-                            echo -e "${YELLOW}Available remotes:${NC}"
-                            git remote -v
-                            echo
-                            read -p "Enter remote name: " new_remote
-                            if [[ -n "$new_remote" ]]; then
-                                config_remote="$new_remote"
-                                echo -e "${GREEN}✓ Remote set to: $config_remote${NC}"
-                            fi
-                            ;;
-                        "💪 Toggle Force Push"*)
-                            config_force=$([[ "$config_force" == "true" ]] && echo "false" || echo "true")
-                            echo -e "${GREEN}✓ Force push: $config_force${NC}"
-                            ;;
-                        "🔍 Toggle Dry Run"*)
-                            config_dry_run=$([[ "$config_dry_run" == "true" ]] && echo "false" || echo "true")
-                            echo -e "${GREEN}✓ Dry run: $config_dry_run${NC}"
-                            ;;
-                        "📁 Toggle File Selection"*)
-                            config_select_files=$([[ "$config_select_files" == "true" ]] && echo "false" || echo "true")
-                            echo -e "${GREEN}✓ File selection mode: $config_select_files${NC}"
-                            ;;
-                        *) return ;;
-                    esac
-                    read -p "Press Enter to continue..."
-                }
-                configure_options
+                configure_options_menu
                 ;;
                 
             "ℹ️  Repository Info")
-                echo -e "${CYAN}📊 Repository Information${NC}"
-                echo -e "${YELLOW}═════════════════════════${NC}"
-                echo -e "📂 Repository: $(basename "$(git rev-parse --show-toplevel)")"
-                echo -e "📍 Location: $(git rev-parse --show-toplevel)"
-                echo -e "🌿 Current Branch: $(git symbolic-ref --short HEAD)"
-                echo -e "🔗 Remotes:"
-                git remote -v | sed 's/^/  /'
-                echo -e "📝 Recent Commits:"
-                git --no-pager log --oneline -5 | sed 's/^/  /'
-                echo -e "📊 Status:"
-                git status --short | sed 's/^/  /' || echo "  Working directory clean"
-                echo -e "${YELLOW}═════════════════════════${NC}"
-                read -p "Press Enter to continue..."
+                show_repository_info
+                read -p "Press Enter to return to main menu..."
                 ;;
                 
             "❓ Help")
                 show_help
+                read -p "Press Enter to return to main menu..."
                 ;;
                 
-            "🚪 Exit"|*)
+            "🚪 Exit")
                 echo -e "${GREEN}👋 Goodbye!${NC}"
                 exit 0
                 ;;
         esac
     done
+}
+
+# Configuration options submenu
+configure_options_menu() {
+    while true; do
+        local config_menu=(
+            "🌿 Change Target Branch ($config_branch)|Modify the target branch for commits"
+            "🔗 Change Remote ($config_remote)|Change the remote repository"
+            "💪 Toggle Force Push ($config_force)|Enable/disable force push"
+            "🔍 Toggle Dry Run ($config_dry_run)|Enable/disable dry run mode"
+            "📁 Toggle File Selection ($config_select_files)|Enable/disable interactive file selection"
+            "↩️  Back to Main Menu|Return to the main menu"
+        )
+        
+        echo -e "\n${CYAN}═══════════════════════════════════════${NC}"
+        echo -e "${YELLOW}⚙️  Configuration Options${NC}"
+        echo -e "${CYAN}═══════════════════════════════════════${NC}"
+        
+        local config_selection
+        config_selection=$(printf "%s\n" "${config_menu[@]}" | \
+            fzf --ansi --height 50% --reverse \
+            --header "Configure Options (↓↑ navigate | Enter select | Ctrl-C back)" \
+            --preview 'echo -e "$(echo {} | cut -d"|" -f2)\n\nCurrent Settings:\n• Branch: '"$config_branch"'\n• Remote: '"$config_remote"'\n• Force: '"$config_force"'\n• Dry-run: '"$config_dry_run"'\n• Select-files: '"$config_select_files"'"' \
+            --preview-window=right:40% \
+            --border=rounded \
+            --prompt="⚙️  Option: ")
+        
+        [[ -z "$config_selection" ]] && break
+        
+        local action
+        action=$(echo "$config_selection" | cut -d'|' -f1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        
+        case "$action" in
+            "🌿 Change Target Branch"*)
+                echo -e "${YELLOW}Available branches:${NC}"
+                git branch -a | grep -v HEAD
+                echo
+                read -p "Enter target branch name (or press Enter to cancel): " new_branch
+                if [[ -n "$new_branch" ]]; then
+                    config_branch="$new_branch"
+                    echo -e "${GREEN}✓ Target branch set to: $config_branch${NC}"
+                    read -p "Press Enter to continue..."
+                fi
+                ;;
+            "🔗 Change Remote"*)
+                echo -e "${YELLOW}Available remotes:${NC}"
+                git remote -v
+                echo
+                read -p "Enter remote name (or press Enter to cancel): " new_remote
+                if [[ -n "$new_remote" ]]; then
+                    config_remote="$new_remote"
+                    echo -e "${GREEN}✓ Remote set to: $config_remote${NC}"
+                    read -p "Press Enter to continue..."
+                fi
+                ;;
+            "💪 Toggle Force Push"*)
+                config_force=$([[ "$config_force" == "true" ]] && echo "false" || echo "true")
+                echo -e "${GREEN}✓ Force push: $config_force${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            "🔍 Toggle Dry Run"*)
+                config_dry_run=$([[ "$config_dry_run" == "true" ]] && echo "false" || echo "true")
+                echo -e "${GREEN}✓ Dry run: $config_dry_run${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            "📁 Toggle File Selection"*)
+                config_select_files=$([[ "$config_select_files" == "true" ]] && echo "false" || echo "true")
+                echo -e "${GREEN}✓ File selection mode: $config_select_files${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            "↩️  Back to Main Menu"|*)
+                break
+                ;;
+        esac
+    done
+}
+
+# Repository information display
+show_repository_info() {
+    echo -e "${CYAN}📊 Repository Information${NC}"
+    echo -e "${YELLOW}═════════════════════════${NC}"
+    echo -e "📂 Repository: $(basename "$(git rev-parse --show-toplevel)")"
+    echo -e "📍 Location: $(git rev-parse --show-toplevel)"
+    echo -e "🌿 Current Branch: $(git symbolic-ref --short HEAD)"
+    echo -e "🔗 Remotes:"
+    git remote -v | sed 's/^/  /'
+    echo -e "📝 Recent Commits:"
+    git --no-pager log --oneline -5 | sed 's/^/  /'
+    echo -e "📊 Status:"
+    git status --short | sed 's/^/  /' || echo "  Working directory clean"
+    echo -e "${YELLOW}═════════════════════════${NC}"
 }
 
 # Workflow principal
