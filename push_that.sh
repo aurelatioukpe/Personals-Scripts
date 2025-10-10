@@ -43,7 +43,7 @@ show_ascii_art() {
     echo
 }
 
-# Fonction d'aide étendue
+# Fonction d'aide étendue (pour mode non-interactif)
 show_help() {
     echo -e "${YELLOW}Git Push Assistant v${SCRIPT_VERSION}${NC}"
     echo -e "${YELLOW}Usage:${NC}"
@@ -69,6 +69,32 @@ show_help() {
     echo "  $0 --remove-file"
     echo "  $0 --dry-run 'Test commit'"
     exit 0
+}
+
+# Fonction d'aide pour le mode interactif (ne ferme pas le programme)
+show_help_interactive() {
+    clear
+    echo -e "${YELLOW}Git Push Assistant v${SCRIPT_VERSION} - Help${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════${NC}"
+    echo -e "${YELLOW}Available Options:${NC}"
+    echo "  🚀 Commit & Push        - Standard commit and push workflow"
+    echo "  📁 Select Files & Push  - Interactive file selection mode"
+    echo "  🌿 Branch Management    - Create, switch, merge, and delete branches"
+    echo "  📜 Commit History       - View and interact with commit history"
+    echo "  📊 Repository Status    - Detailed repository status and information"
+    echo "  ↩️  Undo Last Commit    - Reset last commit (keep changes)"
+    echo "  🗑️  Remove File         - Remove specific files from last commit"
+    echo "  🔧 Configure Options    - Set branch, remote, and other options"
+    echo -e "\n${YELLOW}Navigation:${NC}"
+    echo "  • Use ↓↑ arrow keys to navigate"
+    echo "  • Press Enter to select an option"
+    echo "  • Press Ctrl-C to go back to previous menu"
+    echo "  • Look for '↩️ Back' options in submenus"
+    echo -e "\n${YELLOW}Tips:${NC}"
+    echo "  • You can cancel most operations by pressing Ctrl-C"
+    echo "  • The script shows repository status in real-time"
+    echo "  • All dangerous operations ask for confirmation"
+    echo -e "${CYAN}═══════════════════════════════════════${NC}"
 }
 
 # Détection du système d'exploitation
@@ -151,6 +177,33 @@ install_fzf() {
             exit 1
             ;;
     esac
+}
+
+# Fonction utilitaire pour read avec gestion d'annulation
+safe_read() {
+    local prompt="$1"
+    local var_name="$2"
+    local options="$3"  # optionnel : -n 1 -r par exemple
+    
+    # Désactiver temporairement set -e pour gérer l'interruption
+    set +e
+    
+    if [[ -n "$options" ]]; then
+        read -p "$prompt" $options "$var_name"
+    else
+        read -p "$prompt" "$var_name"
+    fi
+    
+    local exit_code=$?
+    set -e
+    
+    # Si Ctrl-C (exit code 130), retourner false
+    if [[ $exit_code -eq 130 ]]; then
+        echo -e "\n${YELLOW}⚠️  Operation cancelled by user${NC}"
+        return 1
+    fi
+    
+    return 0
 }
 
 # Vérification des dépendances
@@ -443,6 +496,9 @@ interactive_menu() {
         local commits_ahead
         commits_ahead=$(git rev-list --count "@{u}"..) 2>/dev/null || commits_ahead="0"
         
+        # S'assurer que commits_ahead est numérique
+        [[ "$commits_ahead" =~ ^[0-9]+$ ]] || commits_ahead="0"
+        
         if [[ $changes_count -gt 0 ]]; then
             status_info="${YELLOW}📝 $changes_count uncommitted changes${NC}"
         elif [[ $commits_ahead -gt 0 ]]; then
@@ -464,6 +520,9 @@ interactive_menu() {
             "❓ Help|Show help and usage information"
             "🚪 Exit|Exit the program"
         )
+        
+        # Nettoyage de l'écran avant l'affichage du menu
+        clear
         
         echo -e "\n${CYAN}═══════════════════════════════════════${NC}"
         echo -e "${YELLOW}🔧 Git Push Assistant v${SCRIPT_VERSION}${NC}"
@@ -491,7 +550,9 @@ interactive_menu() {
         case "$action" in
             "🚀 Commit & Push")
                 echo -e "${CYAN}Standard Commit & Push Workflow${NC}"
-                read -p "📝 Enter commit message: " commit_message
+                if ! safe_read "📝 Enter commit message: " commit_message; then
+                    continue  # L'utilisateur a annulé avec Ctrl-C
+                fi
                 if [[ -z "$commit_message" ]]; then
                     echo -e "${RED}❌ Commit message is required${NC}"
                     read -p "Press Enter to continue..."
@@ -531,7 +592,9 @@ interactive_menu() {
                 
                 select_files
                 
-                read -p "📝 Enter commit message: " commit_message
+                if ! safe_read "📝 Enter commit message: " commit_message; then
+                    continue  # L'utilisateur a annulé avec Ctrl-C
+                fi
                 if [[ -z "$commit_message" ]]; then
                     echo -e "${RED}❌ Commit message is required${NC}"
                     read -p "Press Enter to continue..."
@@ -574,7 +637,7 @@ interactive_menu() {
                 ;;
                 
             "❓ Help")
-                show_help
+                show_help_interactive
                 read -p "Press Enter to return to main menu..."
                 ;;
                 
@@ -589,6 +652,9 @@ interactive_menu() {
 # Configuration options submenu
 configure_options_menu() {
     while true; do
+        # Nettoyage de l'écran
+        clear
+        
         local config_menu=(
             "🌿 Change Target Branch ($config_branch)|Modify the target branch for commits"
             "🔗 Change Remote ($config_remote)|Change the remote repository"
@@ -680,6 +746,9 @@ show_repository_info() {
 # Commit history menu with interactive options
 show_commit_history_menu() {
     while true; do
+        # Nettoyage de l'écran
+        clear
+        
         local history_menu=(
             "📋 View Recent Commits (10)|Show the last 10 commits with details"
             "📜 View All Commits|Browse complete commit history with pager"
@@ -1211,7 +1280,10 @@ main() {
         select_files
         # Ask for commit message after file selection if not provided
         if [[ -z "$message" ]]; then
-            read -p "${CYAN}Enter commit message: ${NC}" message
+            if ! safe_read "${CYAN}Enter commit message: ${NC}" message; then
+                echo -e "${YELLOW}Operation cancelled by user${NC}"
+                exit 0
+            fi
             if [[ -z "$message" ]]; then
                 echo -e "${RED}Error: Commit message is required${NC}"
                 exit 1
@@ -1227,6 +1299,8 @@ main() {
             # Check if there are commits to push
             local commits_ahead
             commits_ahead=$(git rev-list --count "@{u}"..)  2>/dev/null || commits_ahead="0"
+            # S'assurer que commits_ahead est numérique
+            [[ "$commits_ahead" =~ ^[0-9]+$ ]] || commits_ahead="0"
             if [[ "$commits_ahead" -gt 0 ]]; then
                 echo -e "${BLUE}Found $commits_ahead unpushed commit(s)${NC}"
                 confirm_action "$remote" "$target_branch" "$dry_run"
@@ -1292,6 +1366,9 @@ main() {
 # Branch Management Menu
 branch_management_menu() {
     while true; do
+        # Nettoyage de l'écran
+        clear
+        
         local branch_menu=(
             "🌿 Switch Branch|Switch to a different branch"
             "➕ Create New Branch|Create and optionally switch to a new branch"
