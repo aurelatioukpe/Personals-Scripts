@@ -183,25 +183,28 @@ install_fzf() {
 safe_read() {
     local prompt="$1"
     local var_name="$2"
-    # local options="$3"  # optionnel : -n 1 -r par exemple
-    
-    # Désactiver temporairement set -e pour gérer l'interruption
-    set +e
-    
-    read -p "$prompt" "$var_name"
 
-    
+    set +e
+    # Lire la saisie
+    read -r -p "$prompt" input_var
     local exit_code=$?
     set -e
-    
-    # Si Ctrl-C (exit code 130), retourner false
+
+    # Gestion des interruptions
     if [[ $exit_code -eq 130 ]]; then
-        echo -e "\n${YELLOW}⚠️  Operation cancelled by user${NC}"
+        echo -e "\n${YELLOW}⚠️  Operation cancelled by user (Ctrl-C)${NC}"
+        return 1
+    elif [[ $exit_code -eq 1 ]]; then
+        echo -e "\n${YELLOW}⚠️  End of input detected (Ctrl-D)${NC}"
         return 1
     fi
-    
+
+    # Affectation à la variable passée en paramètre
+    printf -v "$var_name" "%s" "$input_var"
+
     return 0
 }
+
 
 # Vérification des dépendances
 check_dependencies() {
