@@ -514,15 +514,15 @@ interactive_menu() {
             "🌿 Branch Management | Create, switch, merge, and delete branches"
             "📜 Commit History | View and interact with commit history"
             "📊 Repository Status | Detailed repository status and information"
-            "↩️  Undo Last Commit|Reset last commit (keep changes)"
-            "🗑️  Remove File from Commit|Remove specific files from last commit"
-            "🔧 Configure Options|Set branch, remote, and other options"
-            "❓ Help|Show help and usage information"
-            "🚪 Exit|Exit the program"
+            "↩️  Undo Last Commit | Reset last commit (keep changes)"
+            "🗑️  Remove File from Commit | Remove specific files from last commit"
+            "🔧 Configure Options | Set branch, remote, and other options"
+            "❓ Help | Show help and usage information"
+            "🚪 Exit | Exit the program"
         )
         
         # Nettoyage de l'écran avant l'affichage du menu
-        sleep 1
+        sleep 0.5
         clear
         
         echo -e "\n${CYAN}═══════════════════════════════════════${NC}"
@@ -541,7 +541,7 @@ interactive_menu() {
             --preview 'echo -e "$(echo {} | cut -d"|" -f2)\n\nCurrent configuration:\n• Remote: '"$config_remote"'\n• Branch: '"$config_branch"'\n• Force: '"$config_force"'\n• Dry run: '"$config_dry_run"'\n• Select files: '"$config_select_files"'"' \
             --preview-window=right:40% \
             --border=rounded \
-            --prompt="🔧 Action: ")
+            --prompt="🔧 Action: Choose an action")
         
         [[ -z "$selected_option" ]] && break
         
