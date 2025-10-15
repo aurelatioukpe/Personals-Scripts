@@ -183,16 +183,13 @@ install_fzf() {
 safe_read() {
     local prompt="$1"
     local var_name="$2"
-    local options="$3"  # optionnel : -n 1 -r par exemple
+    # local options="$3"  # optionnel : -n 1 -r par exemple
     
     # Désactiver temporairement set -e pour gérer l'interruption
     set +e
     
-    if [[ -n "$options" ]]; then
-        read -p "$prompt" $options "$var_name"
-    else
-        read -p "$prompt" "$var_name"
-    fi
+    read -p "$prompt" "$var_name"
+
     
     local exit_code=$?
     set -e
@@ -509,11 +506,11 @@ interactive_menu() {
         
         # Menu principal
         local menu_options=(
-            "🚀 Commit & Push|Standard commit and push workflow"
-            "📁 Select Files & Push|Interactive file selection mode"
-            "🌿 Branch Management|Create, switch, merge, and delete branches"
-            "📜 Commit History|View and interact with commit history"
-            "📊 Repository Status|Detailed repository status and information"
+            "🚀 Commit & Push | Standard commit and push workflow"
+            "📁 Select Files & Push | Interactive file selection mode"
+            "🌿 Branch Management | Create, switch, merge, and delete branches"
+            "📜 Commit History | View and interact with commit history"
+            "📊 Repository Status | Detailed repository status and information"
             "↩️  Undo Last Commit|Reset last commit (keep changes)"
             "🗑️  Remove File from Commit|Remove specific files from last commit"
             "🔧 Configure Options|Set branch, remote, and other options"
