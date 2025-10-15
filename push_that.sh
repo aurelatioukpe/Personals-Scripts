@@ -522,6 +522,7 @@ interactive_menu() {
         )
         
         # Nettoyage de l'écran avant l'affichage du menu
+        sleep 1
         clear
         
         echo -e "\n${CYAN}═══════════════════════════════════════${NC}"
